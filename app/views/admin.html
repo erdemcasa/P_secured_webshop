@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Shop - Administration</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <div id="topbar"></div>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Administration</h1>
+                <p class="hero-text">Gestion des utilisateurs</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <div class="container">
+                <h2>Liste des utilisateurs</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Adresse</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <tr><td colspan="5">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer id="contact" class="footer">
+        <div class="container">
+            <p>Projet pédagogique - ETML 183</p>
+        </div>
+    </footer>
+
+    <script src="/js/nav.js"></script>
+    <script>
+        fetch('/api/admin/users')
+            .then(r => r.json())
+            .then(users => {
+                const tbody = document.getElementById('user-table-body');
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.username}</td>
+                        <td>${u.email}</td>
+                        <td><span class="badge-${u.role}">${u.role}</span></td>
+                        <td>${u.address || '-'}</td>
+                    </tr>
+                `).join('');
+            })
+            .catch(() => {
+                document.getElementById('user-table-body').innerHTML =
+                    '<tr><td colspan="5">Erreur lors du chargement</td></tr>';
+            });
+    </script>
+</body>
+</html>

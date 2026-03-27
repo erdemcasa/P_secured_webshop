@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Shop - Mon Profil</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <div id="topbar"></div>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Mon Profil</h1>
+            </div>
+        </section>
+
+        <div class="container">
+            <div class="profile-card">
+
+                <!-- Photo de profil -->
+                <div id="photo-container">
+                    <div class="profile-photo-placeholder" id="photo-placeholder">👤</div>
+                </div>
+
+                <!-- Informations de base -->
+                <div id="user-info">
+                    <div class="info-row"><strong>Nom :</strong> <span id="username">...</span></div>
+                    <div class="info-row"><strong>Email :</strong> <span id="email">...</span></div>
+                    <div class="info-row"><strong>Rôle :</strong> <span id="role">...</span></div>
+                </div>
+
+                <hr>
+
+                <!-- Message de statut -->
+                <div class="message" id="status-message"></div>
+
+                <!-- Formulaire de mise à jour de l'adresse -->
+                <form id="address-form">
+                    <div class="form-group">
+                        <label for="address">Adresse</label>
+                        <input type="text" id="address" name="address" placeholder="Votre adresse complète">
+                    </div>
+                    <button type="submit">Mettre à jour l'adresse</button>
+                </form>
+
+                <hr>
+
+                <!-- Formulaire d'upload de photo -->
+                <form id="photo-form">
+                    <div class="form-group">
+                        <label for="photo">Photo de profil</label>
+                        <input type="file" id="photo" name="photo" accept="image/*">
+                    </div>
+                    <button type="submit">Envoyer la photo</button>
+                </form>
+
+            </div>
+        </div>
+    </main>
+
+    <footer id="contact" class="footer">
+        <div class="container">
+            <p>Projet pedagogique - ETML 183</p>
+        </div>
+    </footer>
+
+    <script src="/js/nav.js"></script>
+    <script>
+        // ------------------------------------------------------------------
+        // Chargement du profil au démarrage
+        // ------------------------------------------------------------------
+        async function loadProfile() {
+            const res = await fetch('/api/profile');
+            if (!res.ok) return;
+            const user = await res.json();
+
+            document.getElementById('username').textContent = user.username;
+            document.getElementById('email').textContent    = user.email;
+            document.getElementById('role').textContent     = user.role;
+
+            document.getElementById('address').value = user.address || '';
+
+            const photoContainer = document.getElementById('photo-container');
+            if (user.photo_path) {
+                photoContainer.innerHTML = `<img class="profile-photo" src="${user.photo_path}" alt="Photo de profil">`;
+            }
+
+            const infoDiv = document.getElementById('user-info');
+            infoDiv.innerHTML += `<div class="info-row"><strong>Adresse :</strong> ${user.address || ''}</div>`;
+        }
+
+        // ------------------------------------------------------------------
+        // Mise à jour de l'adresse
+        // ------------------------------------------------------------------
+        document.getElementById('address-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const address = document.getElementById('address').value;
+
+            const res = await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address })
+            });
+
+            const data = await res.json();
+            showMessage(res.ok ? 'success' : 'error', data.message || data.error);
+            if (res.ok) loadProfile();
+        });
+
+        // ------------------------------------------------------------------
+        // Upload de la photo
+        // ------------------------------------------------------------------
+        document.getElementById('photo-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('photo').files[0];
+            if (!file) return showMessage('error', 'Aucun fichier sélectionné');
+
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            const res = await fetch('/api/profile/photo', { method: 'POST', body: formData });
+            const data = await res.json();
+            showMessage(res.ok ? 'success' : 'error', data.message || data.error);
+            if (res.ok) loadProfile();
+        });
+
+        function showMessage(type, text) {
+            const el = document.getElementById('status-message');
+            el.textContent = text;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 4000);
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>
