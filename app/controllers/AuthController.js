@@ -7,29 +7,46 @@ const PEPPER = process.env.PASSWORD_PEPPER;
 
 const SALT_ROUNDS = 12;
 module.exports = {
-
     // ----------------------------------------------------------
     // POST /api/auth/login
     // ----------------------------------------------------------
-    login: (req, res) => {
+    login: async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Email et mot de passe requis' });
         }
 
-        const query = `SELECT * FROM users WHERE email = '${email}'`;
+        const query = `SELECT * FROM users WHERE email = ?`;
 
-        db.query(query, (err, results) => {
+        db.query(query, [email], async (err, results) => {
             if (err) {
-                return res.status(500).json({ error: err.message, query: query });
+                return res.status(500).json({ error: err.message });
             }
 
             if (results.length === 0) {
                 return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
             }
 
-            res.json({ message: 'Connexion réussie', user: results[0] });
+            const user = results[0];
+
+            const pepperedPassword = crypto
+                .createHmac('sha256', PEPPER)
+                .update(password)
+                .digest('hex');
+
+            const isMatch = await bcrypt.compare(pepperedPassword, user.password);
+
+            if (!isMatch) {
+                return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+            }
+
+            delete user.password;
+
+            res.json({
+                message: 'Connexion réussie',
+                user: user
+            });
         });
     },
 
@@ -45,7 +62,7 @@ module.exports = {
             }
 
 
-            
+
             // if (password.length < 6) {
             //     return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
             // }
@@ -77,7 +94,7 @@ module.exports = {
                             details: err.message
                         });
                     }
-                    
+
                     res.status(201).json({
                         message: 'Inscription réussie',
                         userId: results.insertId
