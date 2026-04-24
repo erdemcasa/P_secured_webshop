@@ -2,7 +2,6 @@
 # Created by : CSR
 # Description : This compose file creates a stack of two containers (nodejs + mysql)
 # 
-version: '2'
 
 services:
     db:

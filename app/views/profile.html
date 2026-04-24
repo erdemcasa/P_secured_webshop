@@ -134,6 +134,20 @@
             setTimeout(() => { el.style.display = 'none'; }, 4000);
         }
 
+        function showFlashFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const type = params.get('flashType');
+            const message = params.get('flashMessage');
+
+            if (!type || !message) {
+                return;
+            }
+
+            showMessage(type === 'success' ? 'success' : 'error', message);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        showFlashFromQuery();
         loadProfile();
     </script>
 </body>

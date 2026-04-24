@@ -7,10 +7,10 @@
 
 SET NAMES utf8mb4;
 
-CREATE DATABASE IF NOT EXISTS webshop
+CREATE DATABASE IF NOT EXISTS db_webshop
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
-USE webshop;
+USE db_webshop;
 
 -- ---------------------------------------------------------------
 -- Table users

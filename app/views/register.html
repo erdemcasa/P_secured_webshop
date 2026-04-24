@@ -13,6 +13,7 @@
         <section class="hero">
             <div class="container">
                 <h1>Inscription</h1>
+                <div class="message" id="status-message"></div>
                 
                 <form action="/api/auth/register" method="POST" class="register-form">
                     <div class="form-group">
@@ -47,6 +48,26 @@
 
     <script src="/js/nav.js">
 
+    </script>
+    <script>
+        function showFlashFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const type = params.get('flashType');
+            const message = params.get('flashMessage');
+
+            if (!type || !message) {
+                return;
+            }
+
+            const el = document.getElementById('status-message');
+            el.textContent = message;
+            el.className = 'message ' + (type === 'success' ? 'success' : 'error');
+            el.style.display = 'block';
+
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        showFlashFromQuery();
     </script>
 </body>
 </html>
