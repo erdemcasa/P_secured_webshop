@@ -1,7 +1,19 @@
 const path = require('path');
 const db = require('../config/db');
+const jwt = require('jsonwebtoken');
 
-const DEFAULT_USER_ID = 1;
+// Get l'id de l'user avec le jwt
+const getUserIdFromToken = (req) => {
+    const token = req.cookies?.auth_token;
+    if (!token) return null;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded.userId;
+    } catch (error) {
+        return null;
+    }
+};
 
 module.exports = {
 
@@ -9,7 +21,11 @@ module.exports = {
     // GET /api/profile
     // ----------------------------------------------------------
     get: (_req, res) => {
-        const userId = DEFAULT_USER_ID;
+        const userId = getUserIdFromToken(_req);
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Accès non autorisé' });
+        }
 
         db.query('SELECT id, username, email, role, address, photo_path FROM users WHERE id = ?', [userId], (err, results) => {
             if (err) {
@@ -26,8 +42,12 @@ module.exports = {
     // POST /api/profile
     // ----------------------------------------------------------
     update: (req, res) => {
-        const userId = DEFAULT_USER_ID;
+        const userId = getUserIdFromToken(req);
         const { address } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Accès non autorisé' });
+        }
 
         db.query('UPDATE users SET address = ? WHERE id = ?', [address, userId], (err) => {
             if (err) {
@@ -41,7 +61,11 @@ module.exports = {
     // POST /api/profile/photo
     // ----------------------------------------------------------
     uploadPhoto: (req, res) => {
-        const userId = DEFAULT_USER_ID; // TODO exercice 5 : remplacer par req.user.id
+        const userId = getUserIdFromToken(req);
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Accès non autorisé' });
+        }
 
         if (!req.file) {
             return res.status(400).json({ error: 'Aucun fichier reçu' });

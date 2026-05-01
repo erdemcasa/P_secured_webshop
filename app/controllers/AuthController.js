@@ -66,11 +66,27 @@ module.exports = {
                 expiresIn: '1h'
             });
 
+            const refreshToken = jwt.sign(
+                { id: user.id },
+                process.env.REFRESH_JWT_SECRET,
+                { expiresIn: '7d' } 
+            );
 
-            delete user.password;
+            db.query('UPDATE users SET refresh_token = ? WHERE id = ?', [refreshToken, user.id], (err) => {
+                if (err) console.error('Erreur SQL (refresh token):', err);
+                
+                res.cookie('refreshToken', refreshToken, {
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: 'Strict',
+                    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+                });
 
-            res.cookie('auth_token', token, { httpOnly: true, secure: false, maxAge: 3600000 });
-            return redirectWithFlash(res, '/profile', 'success', `Bienvenue, ${user.username}!`);
+                delete user.password;
+
+                res.cookie('auth_token', token, { httpOnly: true, secure: false, maxAge: 3600000 });
+                return redirectWithFlash(res, '/profile', 'success', `Bienvenue, ${user.username}!`);
+            });
         });
     },
 
@@ -140,10 +156,63 @@ module.exports = {
     },
 
     // ----------------------------------------------------------
+    // POST /api/auth/refresh
+    // ----------------------------------------------------------
+    refreshToken: (req, res) => {
+        const refreshToken = req.cookies?.refreshToken;
+        
+        if (!refreshToken) {
+            return res.status(401).json({ message: 'Refresh token manquant' });
+        }
+
+        jwt.verify(refreshToken, process.env.REFRESH_JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(403).json({ message: 'Refresh token invalide ou expiré' });
+            }
+
+            db.query('SELECT * FROM users WHERE id = ? AND refresh_token = ?', [decoded.id, refreshToken], (dbErr, results) => {
+                if (dbErr || results.length === 0) {
+                    return res.status(403).json({ message: 'Refresh token révoqué ou non trouvé' });
+                }
+
+                const user = results[0];
+                const payload = {
+                    userId: user.id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                };
+
+                const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+                res.cookie('auth_token', newToken, { httpOnly: true, secure: false, maxAge: 3600000 });
+                
+                return res.json({ success: true, message: 'Token rafraîchi' });
+            });
+        });
+    },
+
+    // ----------------------------------------------------------
     // GET /api/auth/logout
     // ----------------------------------------------------------
     logout: (req, res) => {
+        const token = req.cookies?.auth_token;
         res.clearCookie('auth_token');
+        res.clearCookie('refreshToken');
+
+        if (token) {
+            try {
+                // On vérifie le token (même expiré) juste pour récupérer l'ID et purger la BDD
+                const decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+                if (decoded && decoded.userId) {
+                    db.query('UPDATE users SET refresh_token = NULL WHERE id = ?', [decoded.userId], (err) => {
+                        if (err) console.error('Erreur lors de la suppression du refresh token:', err);
+                    });
+                }
+            } catch (err) {
+                // Si le token est invalide, on ignore
+            }
+        }
+
         return redirectWithFlash(res, '/', 'success', 'Déconnexion réussie');
     }
 };
