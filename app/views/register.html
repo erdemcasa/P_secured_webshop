@@ -5,6 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Shop - Inscription</title>
     <link rel="stylesheet" href="/css/main.css">
+    <style>
+        /* Styles pour la barre de force */
+        .password-strength-container {
+            margin-top: 10px;
+        }
+        .strength-bar {
+            height: 8px;
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        /* Couleurs selon la force */
+        .weak { background-color: #ff4d4d; width: 25%; }
+        .medium { background-color: #ffd633; width: 50%; }
+        .strong { background-color: #55efc4; width: 75%; }
+        .very-strong { background-color: #00b894; width: 100%; }
+
+        /* Styles pour les objectifs */
+        .password-requirements {
+            font-size: 0.85rem;
+            list-style: none;
+            padding: 0;
+        }
+        .requirement {
+            color: #888;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .requirement.valid {
+            color: #00b894;
+        }
+        .requirement.valid::before {
+            content: "✔";
+            margin-right: 8px;
+        }
+        .requirement::before {
+            content: "○";
+            margin-right: 8px;
+        }
+    </style>
 </head>
 <body>
     <div id="topbar"></div>
@@ -28,14 +77,26 @@
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
                     </div>
+                    
                     <div class="form-group">
                         <label for="password">Mot de passe</label>
-                        <input type="password" id="password" name="password" required>
+                        <input type="password" id="password" name="password" required autocomplete="new-password">
+                        
+                        <div class="password-strength-container">
+                            <div class="strength-bar">
+                                <div id="strength-fill" class="strength-fill"></div>
+                            </div>
+                            <ul class="password-requirements">
+                                <li id="req-length" class="requirement">Au moins 8 caractères</li>
+                                <li id="req-upper" class="requirement">Une majuscule</li>
+                                <li id="req-number" class="requirement">Un chiffre</li>
+                                <li id="req-special" class="requirement">Un caractère spécial (@, $, !, etc.)</li>
+                            </ul>
+                        </div>
                     </div>
-                    <button type="submit">S'inscrire</button>
 
+                    <button type="submit" id="submit-btn">S'inscrire</button>
                 </form>
-
             </div>
         </section>
     </main>
@@ -46,28 +107,58 @@
         </div>
     </footer>
 
-    <script src="/js/nav.js">
-
-    </script>
+    <script src="/js/nav.js"></script>
     <script>
         function showFlashFromQuery() {
             const params = new URLSearchParams(window.location.search);
             const type = params.get('flashType');
             const message = params.get('flashMessage');
-
-            if (!type || !message) {
-                return;
-            }
-
+            if (!type || !message) return;
             const el = document.getElementById('status-message');
             el.textContent = message;
             el.className = 'message ' + (type === 'success' ? 'success' : 'error');
             el.style.display = 'block';
-
             window.history.replaceState({}, document.title, window.location.pathname);
         }
-
         showFlashFromQuery();
+
+        const passwordInput = document.getElementById('password');
+        const strengthFill = document.getElementById('strength-fill');
+        
+        const requirements = {
+            length: { el: document.getElementById('req-length'), regex: /.{8,}/ },
+            upper: { el: document.getElementById('req-upper'), regex: /[A-Z]/ },
+            number: { el: document.getElementById('req-number'), regex: /[0-9]/ },
+            special: { el: document.getElementById('req-special'), regex: /[^A-Za-z0-9]/ }
+        };
+
+        passwordInput.addEventListener('input', () => {
+            const val = passwordInput.value;
+            let score = 0;
+
+            Object.keys(requirements).forEach(key => {
+                const isValid = requirements[key].regex.test(val);
+                if (isValid) {
+                    requirements[key].el.classList.add('valid');
+                    score++;
+                } else {
+                    requirements[key].el.classList.remove('valid');
+                }
+            });
+
+            strengthFill.className = 'strength-fill';
+            if (val.length === 0) {
+                strengthFill.style.width = '0%';
+            } else if (score <= 1) {
+                strengthFill.classList.add('weak');
+            } else if (score === 2) {
+                strengthFill.classList.add('medium');
+            } else if (score === 3) {
+                strengthFill.classList.add('strong');
+            } else {
+                strengthFill.classList.add('very-strong');
+            }
+        });
     </script>
 </body>
 </html>
