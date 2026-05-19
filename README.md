@@ -74,5 +74,3 @@ L'application démarre sur **http://localhost:8080**
 |-------|-------------|------|
 | admin@webshop.com | admin123 | admin |
 | alice@webshop.com | password1 | user |
-
-> ⚠️ Les mots de passe sont stockés en clair — c'est volontaire pour le démarrage du projet.
